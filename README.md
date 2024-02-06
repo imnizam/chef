@@ -1,1 +1,1 @@
-# chef
+# chef cookbooks
