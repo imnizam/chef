@@ -1,0 +1,9 @@
+# statsd exporter daemon
+description "statsd exporter daemon"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+script
+  exec /opt/prometheus/statsd_exporter --statsd.mapping-config=/opt/prometheus/statsd_mapping.yml --statsd.listen-udp=:8125 >> /dev/null 2>&1
+end script

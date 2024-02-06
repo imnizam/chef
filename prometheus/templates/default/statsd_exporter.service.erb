@@ -1,0 +1,13 @@
+[Unit]
+Description=statsd exporter
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/opt/prometheus
+ExecStart=/opt/prometheus/statsd_exporter --statsd.mapping-config=/opt/prometheus/statsd_mapping.yml --statsd.listen-udp=:8125
+TimeoutSec=infinity
+StandardOutput=null
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

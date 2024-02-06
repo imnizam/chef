@@ -1,0 +1,91 @@
+# alertmanager
+global:
+  resolve_timeout: 2h
+  slack_api_url: 'https://hooks.slack.com/'
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 30m
+  repeat_interval: 4h
+  receiver: 'slack-notifications'
+  routes:
+  - match_re:
+      severity: ^(critical|4)$
+    receiver: 'opsgenie-notifications'
+    continue: true
+  - match_re:
+      severity: ^(critical|4)$
+    receiver: 'slack-notifications'
+
+receivers:
+- name: 'opsgenie-notifications'
+  opsgenie_configs:
+  - send_resolved: true
+    api_key: 'abcd'
+    message: |-
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }} for {{ .CommonLabels.job }}
+      {{- if gt (len .CommonLabels) (len .GroupLabels) -}}
+        {{" "}}(
+        {{- with .CommonLabels.Remove .GroupLabels.Names }}
+          {{- range $index, $label := .SortedPairs -}}
+            {{ if $index }}, {{ end }}
+            {{- $label.Name }}="{{ $label.Value -}}"
+          {{- end }}
+        {{- end -}}
+        )
+      {{- end }}
+
+
+- name: 'slack-notifications'
+  slack_configs:
+  - send_resolved: true
+    username: 'Alertmanager'
+    channel: '#channel-alerts'
+    color: '{{ if ne .Status "firing" }}green{{ else if eq .CommonLabels.severity "critical" "4" "3" }}danger{{ else if eq .CommonLabels.severity "warning" "2" "1"  }}warning{{else}}good{{ end }}'
+    title: |-
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+    text: >-
+      {{ with index .Alerts 0 -}}
+        :chart_with_upwards_trend: *<{{ .GeneratorURL }}|Graph>*
+      {{ end }}
+
+      *Alert details*:
+
+      {{ range .Alerts -}}
+        *Alert:* {{ .Annotations.title }}{{ if .Labels.severity }} - severity:`{{ .Labels.severity }}`{{ end }}
+      *Description:* {{ .Annotations.description }}
+      *Details:*
+        {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+        {{ end }}*Summary:* {{ .Annotations.summary }}
+
+      {{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'normal'
+    equal: ['alertname']
+  - source_match:
+      severity: '4'
+    target_match:
+      severity: '3'
+    # Apply inhibition if the alertname is the same.
+    equal: ['alertname']
+  - source_match:
+      severity: '3'
+    target_match:
+      severity: '2'
+    # Apply inhibition if the alertname is the same.
+    equal: ['alertname']
+  - source_match:
+      severity: '2'
+    target_match:
+      severity: '1'
+    # Apply inhibition if the alertname is the same.
+    equal: ['alertname']

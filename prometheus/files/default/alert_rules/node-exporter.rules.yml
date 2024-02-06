@@ -1,0 +1,56 @@
+groups:
+- name: node.rules
+  rules:
+  - alert: "Critical: OutOfMemory"
+    expr: node_uname_info * on(instance) group_right(nodename) ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes * 100) < 1
+    for: 5m
+    labels:
+      severity: "3"
+    annotations:
+      summary: "Out of memory (instance {{ $labels.nodename }} - {{ $labels.instance }})"
+      description: "Node memory is filling up (< 3% left)\n  VALUE = {{ $value }}%\n"
+
+  - alert: "Warning: Node HighCpuLoad > 95"
+    expr: node_uname_info * on(instance) group_right(nodename) (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 95
+    for: 5m
+    labels:
+      severity: "2"
+    annotations:
+      summary: "High CPU load (instance {{ $labels.nodename }} - {{ $labels.instance }})"
+      description: "CPU load is > 95%\n  VALUE = {{ $value }}%\n"
+
+  - alert: "Warning: SwapIsFillingUp"
+    expr: node_uname_info * on(instance) group_right(nodename) ((1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Swap is filling up (instance {{ $labels.nodename }} - {{ $labels.instance }})"
+      description: "Swap is filling up (>80%)\n  VALUE = {{ $value }}%\n"
+
+  - alert: "Critical: InstanceDown"
+    expr: node_uname_info * on(instance) group_right(nodename) up == 0
+    for: 30s
+    labels:
+      severity: "4"
+    annotations:
+      description: '{{ $labels.nodename }} - {{ $labels.instance }} has been down for more than 30 seconds.'
+      summary: "Instance {{ $labels.nodename }} - {{ $labels.instance }} down \n"
+
+  - alert: "Warning: Root DiskFull, less than 25% available"
+    expr: node_uname_info * on(instance) group_right(nodename) (node_filesystem_avail{mountpoint="/"} / node_filesystem_size{mountpoint="/"} * 100) < 25
+    for: 30s
+    labels:
+      severity: "warning"
+    annotations:
+      description: '{{ $labels.nodename }} - {{ $labels.instance }} has less than 25% free disk space.'
+      summary: "Instance {{ $labels.nodename }} - {{ $labels.instance }} low disk space\n  VALUE = {{ $value }}%\n"
+
+  - alert: "Critical: Root DiskFull, less than 10% available"
+    expr: node_uname_info * on(instance) group_right(nodename) (node_filesystem_avail{mountpoint="/"} / node_filesystem_size{mountpoint="/"} * 100) < 10
+    for: 30s
+    labels:
+      severity: "3"
+    annotations:
+      description: 'Instance {{ $labels.nodename }} - {{ $labels.instance }} has less than 10% free disk space.'
+      summary: "Instance {{ $labels.nodename }} - {{ $labels.instance }} low disk space\n  VALUE = {{ $value }}%\n"

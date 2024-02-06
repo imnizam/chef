@@ -1,0 +1,1 @@
+default['jenkins']['url'] = "http://ci.myorg.com"

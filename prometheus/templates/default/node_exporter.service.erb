@@ -1,0 +1,13 @@
+[Unit]
+Description=prometheus node metrics exporter
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/opt/prometheus
+ExecStart=/opt/prometheus/node_exporter
+TimeoutSec=infinity
+StandardOutput=null
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
